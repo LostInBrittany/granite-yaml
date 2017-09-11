@@ -2,6 +2,7 @@
   "name": "granite-yaml-parser",
   "description": "A set of Custom Elements to deal with YAML files",
   "main": "granite-yaml-parser.html",
+  "license": "Apache-2.0",
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
     "js-yaml": "nodeca/js-yaml#^3.9.1"
