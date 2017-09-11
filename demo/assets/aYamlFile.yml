@@ -1,0 +1,10 @@
+aString: 'This is a string'
+aNumber: 42
+anotherString:
+  |
+  This is a multiline
+  string
+yetAnotherString:
+  >
+  This is another multiline
+  string

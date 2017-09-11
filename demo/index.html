@@ -4,95 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
-    <title>granite-yaml-parser demo</title>
-
-    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
-
-    <link rel="import" href="../../polymer/polymer.html">
-    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
-    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
-    <link rel="import" href="../granite-yaml-parser.html">
-
-    <custom-style>
-      <style is="custom-style" include="demo-pages-shared-styles">
-      </style>
-    </custom-style>
+    <title>granite-yaml demos</title>
   </head>
+
   <body>
-    <div class="vertical-section-container centered">
-        <h3>Basic granite-yaml-parser demo</h3>
-        <demo-snippet>
-          <template>
-            <dom-bind id="bindingDemo1">
-              <template>
-                  [[stringify_obj]]
-                  <granite-yaml-parser 
-                    id="granite-yaml-parser-demo-1"
-                    yaml='[[yaml]]' obj="{{obj}}" debug></granite-yaml-parser>
-              </template>
-            </dom-bind>
-          </template>
-        </demo-snippet>
-      </div>   
-
-      <div class="vertical-section-container centered">
-          <h3>Multi-document granite-yaml-parser demo</h3>
-          <demo-snippet>
-            <template>
-              <dom-bind id="bindingDemo2">
-                <template>
-                    [[stringify_obj]]
-                    <granite-yaml-parser 
-                      id="granite-yaml-parser-demo-2"
-                      yaml='[[yaml]]' obj="{{obj}}" debug multi-document></granite-yaml-parser>
-                </template>
-              </dom-bind>
-            </template>
-          </demo-snippet>
-        </div>    
-
-    <script>
-      console.log(document.querySelector('#granite-yaml-parser-demo-1'));
-      document.querySelector('#granite-yaml-parser-demo-1').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 1', evt.detail);
-        bindingDemo1.stringify_obj = JSON.stringify(evt.detail.obj);
-      });
-      let bindingDemo1 = document.getElementById('bindingDemo1');
-      bindingDemo1.yaml=`        
-aString: 'This is a string'
-aNumber: 42
-anotherString:
-  |
-  This is a multiline
-  string
-yetAnotherString:
-  >
-  This is another multiline
-  string
-      `;
-
-      console.log(document.querySelector('#granite-yaml-parser-demo-2'));
-      document.querySelector('#granite-yaml-parser-demo-2').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 2', evt.detail);
-        bindingDemo2.stringify_obj = JSON.stringify(evt.detail.obj);
-      });
-      let bindingDemo2 = document.getElementById('bindingDemo2');
-      bindingDemo2.yaml=`
----
-aString: This is a string
-aNumber: 42
-anotherString:
-  |
-  This is a multiline
-  string
-yetAnotherString:
-  >
-  This is another multiline
-  string
----
-aString: Oh yeah, yet a string
-      `;
-
-    </script>
+    <h2>granite-yaml demos</h2>
+    <ul>
+      <li><a href="./demo-granite-yaml-parser.html">granite-yaml-parser</a></li>
+      <li><a href="./demo-granite-yaml-remote-parser.html">granite-yaml-remote-parser</a></li>
+    </ul>
   </body>
 </html>

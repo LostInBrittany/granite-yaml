@@ -8,7 +8,8 @@ A set of Custom Elements to deal with YAML files.
 
 Available elements:
 
-- granite-yaml-parser: A parser of YAML to JS object, based on JS-YAML 
+- granite-yaml-parser: A parser of YAML to JS object, based on JS-YAML. 
+- granite-yaml-remote-parser: A parser of YAML that grabs a YAML file from an URL and parses it into JS object.
 
 
 ## Usage example
