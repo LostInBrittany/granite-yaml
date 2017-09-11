@@ -16,35 +16,32 @@ Available elements:
 <!---
 ```
 <custom-element-demo>
-  <template">
+  <template>
     <script src="../webcomponentsjs/webcomponents-lite.js"></script>
     <link rel="import" href="../polymer/polymer.html">
     <link rel="import" href="granite-yaml-parser.html">
+    <dom-bind id="binding">
+      <template>
+        <next-code-block></next-code-block>
+      </template>
+    </dom-bind>
     <script>    
       document.querySelector('granite-yaml-parser').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 1', evt.detail);
+        console.log('YAML parsed inline demo', evt.detail);
         binding.stringify_obj = JSON.stringify(evt.detail.obj);
       });
       let binding = document.getElementById('binding');
       binding.yaml=`        
 aString: 'This is a string'
 aNumber: 42
-anotherString:
-  |
+anotherString: |
   This is a multiline
   string
-yetAnotherString:
-  >
+yetAnotherString: >
   This is another multiline
   string
       `;
     </script>
-    [[stringify_obj]]
-    <dom-bind id="binding">
-      <template>
-        <next-code-block></next-code-block>
-      </template>
-    </dom-bind>
   </template>
 </custom-element-demo>
 ```
