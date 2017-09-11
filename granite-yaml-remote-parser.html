@@ -42,7 +42,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <granite-yaml-parser 
         id="granite-yaml-parser"
         yaml='[[_yaml]]' 
-        obj="{{_obj}}" 
+        obj="{{obj}}" 
         multi-document="[[multiDocument]]"
         unsafe="[[unsafe]]"
         on-yaml-parsed="_onYamlParsed"
@@ -303,7 +303,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           /**
            * The JS object resulting from parsing `yaml`
            */
-          _obj: {
+          obj: {
             type: Object,
             notify: true,
           },
