@@ -2,8 +2,6 @@
 
 # granite-yaml
 
-> Based on Polymer 2.x
-
 A set of Custom Elements to deal with YAML files.
 
 Available elements:
@@ -12,15 +10,17 @@ Available elements:
 - granite-yaml-remote-parser: A parser of YAML that grabs a YAML file from an URL and parses it into JS object.
 
 
+> Polymer 3.x. element
+> The legacy Polymer 2.x version is available [here](https://www.webcomponents.org/element/LostInBrittany/granite-yaml/)
+
 ## Usage example
 
 <!---
 ```
 <custom-element-demo>
   <template>
-    <script src="../webcomponentsjs/webcomponents-lite.js"></script>
-    <link rel="import" href="../polymer/polymer.html">
-    <link rel="import" href="granite-yaml-parser.html">
+    <script src="../../@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+    <script type="module" src="../../@granite-elements/granite-yaml.js"></script>
     <dom-bind id="binding">
       <template>
         <next-code-block></next-code-block>
@@ -54,25 +54,37 @@ yetAnotherString: >
     debug></granite-yaml-parser>
 ```
 
+## Install
 
 
-## Install the Polymer-CLI
+Install the component using [npm](https://www.npmjs.com/):
 
-First, make sure you have the [Polymer CLI](https://www.npmjs.com/package/polymer-cli) installed. Then run `polymer serve` to serve your element locally.
-
-## Viewing Your Element
-
-```
-$ polymer serve
+```sh
+$ npm i @granite-elements/ace-widget --save
 ```
 
-## Running Tests
+Once installed, import it in your application:
 
-```
-$ polymer test
-```
+import '@granite-elements/granite-yaml/granite-yaml-parser.js';
 
-Your application is already set up to be tested via [web-component-tester](https://github.com/Polymer/web-component-tester). Run `polymer test` to run your application's test suite locally.
+
+
+## Running demos and tests in browser
+
+1. Fork the `granite-yaml` repository and clone it locally.
+
+1. Make sure you have [npm](https://www.npmjs.com/) 
+and the [Polymer CLI](https://www.polymer-project.org/3.0/docs/tools/polymer-cli) installed.
+
+1. When in the `granite-yaml` directory, run `npm install` to install dependencies.
+
+1. Serve the project using Polyumer CLI:
+
+    `polymer serve --module-resolution node --component-dir node_modules`
+
+1. Open the demo in the browser
+
+    - http://127.0.0.1:8080/components/@greanite-elements/granite-yaml/demo
 
 
 
