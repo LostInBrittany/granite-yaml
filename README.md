@@ -20,7 +20,7 @@ Available elements:
 <custom-element-demo>
   <template>
     <script src="../../@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-    <script type="module" src="../../@granite-elements/granite-yaml.js"></script>
+    <script type="module" src="../../@granite-elements/granite-yaml/granite-yaml-parser.js"></script>
     <dom-bind id="binding">
       <template>
         <next-code-block></next-code-block>
