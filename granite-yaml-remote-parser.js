@@ -1,4 +1,4 @@
-/**
+/*
 @license MIT
 Copyright (c) 2016 Horacio "LostInBrittany" Gonzalez
 
@@ -8,313 +8,260 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 
-import './granite-yaml-parser.js';
-import '@polymer/iron-ajax/iron-ajax.js';
+import { parseYaml } from './granite-yaml-parser.js';
+
 /**
- * `granite-yaml-remote-parser`
- * 
- * A parser of YAML that grabs a YAML file from an URL and parses it into JS object.
- * It uses JS-YAML as parser and `iron-ajax` to grab the file
+ * `granite-yaml-remote-parser` is a non-visual web component that fetches
+ * a YAML file from an URL and parses it into a JS object, using
+ * [js-yaml](https://github.com/nodeca/js-yaml) and the `fetch` API.
  *
- * With `auto` set to `true`, the element performs a request whenever
- * its `url`, `params` or `body` properties are changed. Automatically generated
- * requests will be debounced in the case that multiple attributes are changed
- * sequentially.
- *      
- * @customElement
- * @polymer
- * @demo demo/demo-granite-yaml-remote-parser.html
+ * ```html
+ * <granite-yaml-remote-parser url="./assets/aYamlFile.yml" auto></granite-yaml-remote-parser>
+ * ```
+ *
+ * With `auto` set, the element performs a request whenever its `url` changes.
+ * Without `auto`, call `fetchYaml()` to trigger the request.
+ *
+ * When the file has been fetched and parsed, a `yaml-parsed` event is fired
+ * and the result is available via the read-only `obj` property.
+ *
+ * @element granite-yaml-remote-parser
+ * @attr {String} url - The URL of the remote YAML file
+ * @attr {Boolean} auto - If present, automatically performs a request when `url` changes
+ * @attr {String} headers - HTTP request headers to send, as a JSON object, e.g. `headers='{"X-Requested-With": "fetch"}'`
+ * @attr {Boolean} with-credentials - If present, cookies are sent with cross-origin requests
+ * @attr {Number} timeout - Request timeout in milliseconds (`0` means no timeout)
+ * @attr {Boolean} multi-document - If present, parsing deals with multi-document sources and `obj` is `{ documents: [...] }`
+ * @attr {Boolean} debug - If present, debug logs are sent to the console
+ * @fires yaml-parsed - Fired when the YAML file has been fetched and parsed. `detail` is `{ url, yaml, obj }`.
+ * @fires yaml-error - Fired when fetching or parsing fails. `detail` is `{ url, error }`.
  */
-class GraniteYamlRemoteParser extends PolymerElement {
-  static get template() {
-    return html`
-    <iron-ajax id="ironAjax" url="[[url]]" params="[[params]]" method="[[method]]" headers="[[headers]]" content-type="[[contentType]]" body="[[body]]" sync="[[sync]]" handle-as="text" with-credentials="[[withCredentials]]" timeout="[[timeout]]" auto="[[auto]]" verbose="[[verbose]]" last-request="{{lastRequest}}" last-response="{{lastResponse}}" last-error="{{lastError}}" bubbles="[[bubbles]]" active-requests="{{activeRequests}}" debounce-duration="[[debounceDuration]]" loading="{{loading}}" on-request="_handleRequest" on-response="_handleResponse" on-error="_handleResponse"></iron-ajax>
-        
-    <granite-yaml-parser id="granite-yaml-parser" yaml="[[_yaml]]" obj="{{obj}}" multi-document="[[multiDocument]]" unsafe="[[unsafe]]" on-yaml-parsed="_onYamlParsed" debug=""></granite-yaml-parser>
-`;
+export class GraniteYamlRemoteParser extends HTMLElement {
+
+  static get observedAttributes() {
+    return ['url', 'auto'];
   }
 
-  static get is() { return 'granite-yaml-remote-parser'; }
+  constructor() {
+    super();
+    this._obj = undefined;
+    this._loading = false;
+    this._abortController = null;
+    this._fetchQueued = false;
+  }
+
+  connectedCallback() {
+    // Capture properties set before the element was upgraded
+    for (const property of ['url', 'auto', 'headers', 'withCredentials', 'timeout', 'multiDocument', 'debug']) {
+      this._upgradeProperty(property);
+    }
+    if (this.auto && this.url) {
+      this._queueFetch();
+    }
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) {
+      return;
+    }
+    if (this.auto && this.url) {
+      this._queueFetch();
+    }
+  }
 
   /**
-    * Fired when a YAML text have been decoded.
-    *
-    * @event yaml-parsed
-    */
-
-  static get properties() {
-    return {
-      /**
-       * The URL of the remote YAML file
-       */
-      url: {
-        type: String,
-        value: '',
-      },
-      /**
-      * An object that contains query parameters to be appended to the
-      * specified `url` when generating a request. If you wish to set the body
-      * content when making a POST request, you should use the `body` property
-      * instead.
-      */
-      params: {
-        type: Object,
-        value: function() {
-          return {};
-        },
-      },
-
-      /**
-      * The HTTP method to use such as 'GET', 'POST', 'PUT', or 'DELETE'.
-      * Default is 'GET'.
-      */
-      method: {
-        type: String,
-        value: 'GET',
-      },
-      /**
-      * HTTP request headers to send.
-      *
-      * Example:
-      *
-      *     <iron-ajax
-      *         auto
-      *         url="http://somesite.com"
-      *         headers='{"X-Requested-With": "XMLHttpRequest"}'
-      *         handle-as="json"></iron-ajax>
-      *
-      * Note: setting a `Content-Type` header here will override the value
-      * specified by the `contentType` property of this element.
-      */
-      headers: {
-        type: Object,
-        value: function() {
-          return {};
-        },
-      },
-      /**
-      * Content type to use when sending data. If the `contentType` property
-      * is set and a `Content-Type` header is specified in the `headers`
-      * property, the `headers` property value will take precedence.
-      *
-      * Varies the handling of the `body` param.
-      */
-      contentType: {
-        type: String,
-        value: null,
-      },
-      /**
-      * Body content to send with the request, typically used with "POST"
-      * requests.
-      *
-      * If body is a string it will be sent unmodified.
-      *
-      * If Content-Type is set to a value listed below, then
-      * the body will be encoded accordingly.
-      *
-      *    * `content-type="application/json"`
-      *      * body is encoded like `{"foo":"bar baz","x":1}`
-      *    * `content-type="application/x-www-form-urlencoded"`
-      *      * body is encoded like `foo=bar+baz&x=1`
-      *
-      * Otherwise the body will be passed to the browser unmodified, and it
-      * will handle any encoding (e.g. for FormData, Blob, ArrayBuffer).
-      *
-      * @type (ArrayBuffer|ArrayBufferView|Blob|Document|FormData|null|string|undefined|Object)
-      */
-      body: {
-        type: Object,
-        value: null,
-      },
-      /**
-      * Toggle whether XHR is synchronous or asynchronous. Don't change this
-      * to true unless You Know What You Are Doing™.
-      */
-      sync: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * Set the withCredentials flag on the request.
-      */
-      withCredentials: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * Set the timeout flag on the request.
-      */
-      timeout: {
-        type: Number,
-        value: 0,
-      },
-      /**
-      * If true, automatically performs an Ajax request when either `url` or
-      * `params` changes.
-      */
-      auto: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * If true, error messages will automatically be logged to the console.
-      */
-      verbose: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * The most recent request made by this iron-ajax element.
-      */
-      lastRequest: {
-        type: Object,
-        notify: true,
-        readOnly: true,
-      },
-      /**
-      * True while lastRequest is in flight.
-      */
-      loading: {
-        type: Boolean,
-        notify: true,
-        readOnly: true,
-      },
-      /**
-      * lastRequest's response.
-      *
-      * Note that lastResponse and lastError are set when lastRequest finishes,
-      * so if loading is true, then lastResponse and lastError will correspond
-      * to the result of the previous request.
-      *
-      * The type of the response is determined by the value of `handleAs` at
-      * the time that the request was generated.
-      *
-      * @type {Object}
-      */
-      lastResponse: {
-        type: Object,
-        notify: true,
-        readOnly: true,
-      },
-      /**
-      * lastRequest's error, if any.
-      *
-      * @type {Object}
-      */
-      lastError: {
-        type: Object,
-        notify: true,
-        readOnly: true,
-      },
-      /**
-        * An Array of all in-flight requests originating from this iron-ajax
-        * element.
-        */
-      activeRequests: {
-        type: Array,
-        notify: true,
-        readOnly: true,
-        value: function() {
-          return [];
-        },
-      },
-      /**
-        * Length of time in milliseconds to debounce multiple automatically generated requests.
-        */
-      debounceDuration: {
-        type: Number,
-        value: 0,
-        notify: true,
-      },
-      /**
-      * By default, iron-ajax's events do not bubble. Setting this attribute will cause its
-      * request and response events as well as its iron-ajax-request, -response,  and -error
-      * events to bubble to the window object. The vanilla error event never bubbles when
-      * using shadow dom even if this.bubbles is true because a scoped flag is not passed with
-      * it (first link) and because the shadow dom spec did not used to allow certain events,
-      * including events named error, to leak outside of shadow trees (second link).
-      * https://www.w3.org/TR/shadow-dom/#scoped-flag
-      * https://www.w3.org/TR/2015/WD-shadow-dom-20151215/#events-that-are-not-leaked-into-ancestor-trees
-      */
-      bubbles: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * If true debug logs are sent to the console
-      */
-      debug: {
-          type: Boolean,
-          value: false,
-      },
-      /**
-       * If `true` YS-YAML uses `load` instead of `safeLoad`.
-       * Use with care with untrusted sources.
-       */
-      unsafe: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * If true parsing deals with multi-document sources
-      */
-      multiDocument: {
-          type: Boolean,
-          value: false,
-      },
-      /**
-       * The YAML text to parse
-       */
-      _yaml: {
-        type: String,
-        value: '',
-      },
-      /**
-       * The JS object resulting from parsing `yaml`
-       */
-      obj: {
-        type: Object,
-        notify: true,
-      },
-    };
+   * The URL of the remote YAML file. Reflected to the `url` attribute.
+   * @type {String}
+   */
+  get url() {
+    return this.getAttribute('url') || '';
+  }
+  set url(value) {
+    this.setAttribute('url', value);
   }
 
-  _onYamlParsed(evt) {
-    evt.stopPropagation();
-    if (this.debug) { console.log('[granite-yaml-remote-parser] _onYamlParsed', evt.detail); }
-    this.dispatchEvent(new CustomEvent('yaml-parsed', {detail: evt.detail}));
-  }
-
-  _handleResponse(evt, ironRequest) {
-    evt.stopPropagation();
-    if (this.debug) { console.log('[granite-yaml-remote-parser] _onResponse', ironRequest.response); }
-    this._yaml = ironRequest.response;
-  }
-
-  _handleRequest(evt, ironRequest) {
-    evt.stopPropagation();
-    if (this.debug) { console.log('[granite-yaml-remote-parser] _onRequest', ironRequest); }
-  }
-
-  _handleError(evt, error) {
-    evt.stopPropagation();
-    if (this.debug) { console.log('[granite-yaml-remote-parser] _onError', error); }
-  }
-
-
-  // *****************************************************************************************
-  // Instance methods
-  // *****************************************************************************************
   /**
-  * Performs an AJAX request to the specified URL.
-  *
-  * @return {!IronRequestElement}
-  */
-  generateRequest() {
-    return this.$.ironAjax.generateRequest();
+   * If `true`, automatically performs a request when `url` changes.
+   * Reflected to the `auto` attribute.
+   * @type {Boolean}
+   */
+  get auto() {
+    return this.hasAttribute('auto');
+  }
+  set auto(value) {
+    this.toggleAttribute('auto', Boolean(value));
+  }
+
+  /**
+   * HTTP request headers to send, as an object.
+   * Reflected to the `headers` attribute as JSON.
+   * @type {Object}
+   */
+  get headers() {
+    const value = this.getAttribute('headers');
+    if (!value) {
+      return {};
+    }
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      if (this.debug) { console.error('[granite-yaml-remote-parser] Invalid `headers` attribute, expecting JSON', error); }
+      return {};
+    }
+  }
+  set headers(value) {
+    this.setAttribute('headers', JSON.stringify(value || {}));
+  }
+
+  /**
+   * If `true`, cookies are sent with cross-origin requests
+   * (`credentials: 'include'`). Reflected to the `with-credentials` attribute.
+   * @type {Boolean}
+   */
+  get withCredentials() {
+    return this.hasAttribute('with-credentials');
+  }
+  set withCredentials(value) {
+    this.toggleAttribute('with-credentials', Boolean(value));
+  }
+
+  /**
+   * Request timeout in milliseconds. `0` means no timeout.
+   * Reflected to the `timeout` attribute.
+   * @type {Number}
+   */
+  get timeout() {
+    return Number(this.getAttribute('timeout')) || 0;
+  }
+  set timeout(value) {
+    this.setAttribute('timeout', value);
+  }
+
+  /**
+   * If `true`, parsing deals with multi-document sources and `obj` is
+   * `{ documents: [...] }`. Reflected to the `multi-document` attribute.
+   * @type {Boolean}
+   */
+  get multiDocument() {
+    return this.hasAttribute('multi-document');
+  }
+  set multiDocument(value) {
+    this.toggleAttribute('multi-document', Boolean(value));
+  }
+
+  /**
+   * If `true`, debug logs are sent to the console.
+   * Reflected to the `debug` attribute.
+   * @type {Boolean}
+   */
+  get debug() {
+    return this.hasAttribute('debug');
+  }
+  set debug(value) {
+    this.toggleAttribute('debug', Boolean(value));
+  }
+
+  /**
+   * The JS object resulting from parsing the fetched YAML (read-only).
+   * @type {*}
+   */
+  get obj() {
+    return this._obj;
+  }
+
+  /**
+   * `true` while a request is in flight (read-only).
+   * @type {Boolean}
+   */
+  get loading() {
+    return this._loading;
+  }
+
+  /**
+   * Fetches the YAML file at `url` and parses it.
+   * A new call aborts any request still in flight.
+   *
+   * @return {Promise<*>} The parsed JS object
+   */
+  async fetchYaml() {
+    if (this._abortController) {
+      this._abortController.abort();
+    }
+    this._abortController = new AbortController();
+    let signal = this._abortController.signal;
+    if (this.timeout > 0) {
+      signal = AbortSignal.any([signal, AbortSignal.timeout(this.timeout)]);
+    }
+
+    const url = this.url;
+    if (this.debug) { console.log('[granite-yaml-remote-parser] fetchYaml - URL', url); }
+
+    this._loading = true;
+    try {
+      const response = await fetch(url, {
+        headers: this.headers,
+        credentials: this.withCredentials ? 'include' : 'same-origin',
+        signal,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status} fetching ${url}`);
+      }
+      const yaml = await response.text();
+      this._obj = parseYaml(yaml, { multiDocument: this.multiDocument });
+
+      if (this.debug) { console.log('[granite-yaml-remote-parser] fetchYaml - Object', this._obj); }
+
+      this.dispatchEvent(new CustomEvent('yaml-parsed', {
+        detail: { url, yaml, obj: this._obj },
+        bubbles: true,
+        composed: true,
+      }));
+      return this._obj;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        // Superseded by a newer request, stay silent
+        return undefined;
+      }
+      if (this.debug) { console.error('[granite-yaml-remote-parser] fetchYaml - Error', error); }
+      this.dispatchEvent(new CustomEvent('yaml-error', {
+        detail: { url, error },
+        bubbles: true,
+        composed: true,
+      }));
+      return undefined;
+    } finally {
+      this._loading = false;
+    }
+  }
+
+  // ***********************************************************************
+  // Internal helpers
+  // ***********************************************************************
+
+  _queueFetch() {
+    // Coalesce multiple synchronous attribute changes into a single request
+    if (this._fetchQueued) {
+      return;
+    }
+    this._fetchQueued = true;
+    queueMicrotask(() => {
+      this._fetchQueued = false;
+      if (this.auto && this.url) {
+        this.fetchYaml();
+      }
+    });
+  }
+
+  _upgradeProperty(property) {
+    if (Object.prototype.hasOwnProperty.call(this, property)) {
+      const value = this[property];
+      delete this[property];
+      this[property] = value;
+    }
   }
 }
 
-window.customElements.define(GraniteYamlRemoteParser.is, GraniteYamlRemoteParser);
+if (!customElements.get('granite-yaml-remote-parser')) {
+  customElements.define('granite-yaml-remote-parser', GraniteYamlRemoteParser);
+}

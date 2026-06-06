@@ -1,17 +1,47 @@
-<!doctype html>
+<!DOCTYPE html>
+<!--
+@license MIT
+Copyright (c) 2016 Horacio "LostInBrittany" Gonzalez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>granite-yaml demos</title>
 
-    <title>granite-yaml demos</title>
-  </head>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 550px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    li {
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
 
-  <body>
-    <h2>granite-yaml demos</h2>
-    <ul>
-      <li><a href="./demo-granite-yaml-parser.html">granite-yaml-parser</a></li>
-      <li><a href="./demo-granite-yaml-remote-parser.html">granite-yaml-remote-parser</a></li>
-    </ul>
-  </body>
+<body>
+  <h1><code>granite-yaml</code></h1>
+
+  <p>A set of web components to parse YAML files into JS objects, based on
+    <a href="https://github.com/nodeca/js-yaml">js-yaml</a>.</p>
+
+  <h3>Demos</h3>
+  <ul>
+    <li><a href="./demo-granite-yaml-parser.html"><code>granite-yaml-parser</code></a>
+      — parses a YAML text into a JS object</li>
+    <li><a href="./demo-granite-yaml-remote-parser.html"><code>granite-yaml-remote-parser</code></a>
+      — fetches a YAML file from an URL and parses it</li>
+  </ul>
+
+  <p><a href="https://github.com/LostInBrittany/granite-yaml">Source on GitHub</a></p>
+</body>
 </html>

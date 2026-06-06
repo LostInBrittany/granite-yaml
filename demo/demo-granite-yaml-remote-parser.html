@@ -1,84 +1,89 @@
-<!doctype html>
+<!DOCTYPE html>
+<!--
+@license MIT
+Copyright (c) 2016 Horacio "LostInBrittany" Gonzalez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>granite-yaml-remote-parser demo</title>
 
-    <title>granite-yaml-parser demo</title>
+  <!-- Resolves the `js-yaml` bare import when served without a build step
+       (e.g. on GitHub Pages). Locally, web-dev-server resolves it instead. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "js-yaml": "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.mjs"
+      }
+    }
+  </script>
+  <script type="module" src="../granite-yaml-remote-parser.js"></script>
 
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 550px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #f5f5f5;
+      padding: 0.5rem;
+      min-height: 3rem;
+    }
+  </style>
+</head>
 
-    <script src="../../../@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+<body>
+  <h1><code>granite-yaml-remote-parser</code></h1>
+  <p><a href="./index.html">← All demos</a></p>
 
-    <script type="module">
-      import '@polymer/polymer/polymer-element.js';
-      import '@polymer/iron-demo-helpers/demo-pages-shared-styles';
-      import '@polymer/iron-demo-helpers/demo-snippet';
-    </script>
-    <script type="module" src="../granite-yaml-remote-parser.js"></script>
+  <h3>Basic usage</h3>
+  <p>Fetches <a href="./assets/aYamlFile.yml"><code>assets/aYamlFile.yml</code></a>
+    and parses it.</p>
 
-    <custom-style>
-        <style is="custom-style" include="demo-pages-shared-styles">
-        </style>
-    </custom-style>
+  <granite-yaml-remote-parser
+      id="remote-parser"
+      url="./assets/aYamlFile.yml"
+      auto></granite-yaml-remote-parser>
 
-  </head>
-  <body>
-    <div class="vertical-section-container centered">
-      <h3>Basic granite-yaml-remote-parser demo</h3>
-      <demo-snippet>
-        <template>
-          <dom-bind id="bindingDemo1">
-            <template>
-                [[stringify_obj]]
-                <granite-yaml-remote-parser 
-                    id="granite-yaml-parser-demo-1" 
-                    url="./assets/aYamlFile.yml" 
-                    obj="{{obj}}" 
-                    auto 
-                    debug>
-            </granite-yaml-remote-parser></template>
-          </dom-bind>
-        </template>
-      </demo-snippet>
-    </div>
+  <pre id="output">(fetching...)</pre>
 
-    <div class="vertical-section-container centered">
-      <h3>Multi-document granite-yaml-remote-parser demo</h3>
-      <demo-snippet>
-        <template>
-          <dom-bind id="bindingDemo2">
-            <template>
-                [[stringify_obj]]
-                <granite-yaml-remote-parser 
-                    id="granite-yaml-parser-demo-2" 
-                    url="./assets/aMultiDocumentYamlFile.yml" 
-                    obj="{{obj}}" 
-                    auto 
-                    debug
-                    multi-document></granite-yaml-remote-parser>
-            </template>
-          </dom-bind>
-        </template>
-      </demo-snippet>
-    </div>
+  <h3>Multi-document source</h3>
+  <p>Fetches <a href="./assets/aMultiDocumentYamlFile.yml"><code>assets/aMultiDocumentYamlFile.yml</code></a>
+    and parses it with the <code>multi-document</code> attribute.</p>
 
-    <script type="module">
-      import '@polymer/polymer/polymer-legacy.js';
-      import '@polymer/iron-demo-helpers/demo-pages-shared-styles.js';
-      import '@polymer/iron-demo-helpers/demo-snippet.js';
-      import '../granite-yaml-remote-parser.js';
-      document.querySelector('#granite-yaml-parser-demo-1').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 1', evt.detail);
-        bindingDemo1.stringify_obj = JSON.stringify(evt.detail.obj);
+  <granite-yaml-remote-parser
+      id="multi-remote-parser"
+      url="./assets/aMultiDocumentYamlFile.yml"
+      auto
+      multi-document></granite-yaml-remote-parser>
+
+  <pre id="multi-output">(fetching...)</pre>
+
+  <script>
+    for (const [parserId, outputId] of [
+      ['remote-parser', 'output'],
+      ['multi-remote-parser', 'multi-output'],
+    ]) {
+      const parser = document.getElementById(parserId);
+      const output = document.getElementById(outputId);
+      parser.addEventListener('yaml-parsed', (evt) => {
+        output.textContent = JSON.stringify(evt.detail.obj, null, 2);
       });
-      let bindingDemo1 = document.getElementById('bindingDemo1');
-
-
-      document.querySelector('#granite-yaml-parser-demo-2').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 2', evt.detail);
-        bindingDemo2.stringify_obj = JSON.stringify(evt.detail.obj);
+      parser.addEventListener('yaml-error', (evt) => {
+        output.textContent = `Error: ${evt.detail.error.message}`;
       });
-      let bindingDemo2 = document.getElementById('bindingDemo2');
-    </script>
-  </body>
+    }
+  </script>
+</body>
 </html>

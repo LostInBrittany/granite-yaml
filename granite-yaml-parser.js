@@ -1,4 +1,4 @@
-/**
+/*
 @license MIT
 Copyright (c) 2016 Horacio "LostInBrittany" Gonzalez
 
@@ -8,91 +8,158 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 
-import 'js-yaml/dist/js-yaml';
-/* global jsyaml */
+import { load, loadAll } from 'js-yaml';
+
 /**
- * `granite-yaml-parser`
- * A parser of YAML to JS object, based on JS-YAML.
+ * Parses a YAML text into a JS object, using [js-yaml](https://github.com/nodeca/js-yaml).
  *
- * @customElement
- * @polymer
- * @demo demo/demo-granite-yaml-parser.html
+ * @param {String} yaml - The YAML text to parse
+ * @param {Object} [options]
+ * @param {Boolean} [options.multiDocument=false] - If `true`, parses a multi-document
+ *   source and returns `{ documents: [...] }`
+ * @return {*} The parsed JS object
  */
-class GraniteYamlParser extends PolymerElement {
-  static get is() { return 'granite-yaml-parser'; }
+export function parseYaml(yaml, { multiDocument = false } = {}) {
+  if (multiDocument) {
+    return { documents: loadAll(yaml) };
+  }
+  return load(yaml);
+}
 
-  /**
-    * Fired when a YAML text have been decoded.
-    *
-    * @event yaml-parsed
-    */
+/**
+ * `granite-yaml-parser` is a non-visual web component that parses a YAML text
+ * into a JS object, using [js-yaml](https://github.com/nodeca/js-yaml).
+ *
+ * ```html
+ * <granite-yaml-parser yaml="aNumber: 42"></granite-yaml-parser>
+ * ```
+ *
+ * Whenever the `yaml` attribute or property changes, the text is parsed and
+ * a `yaml-parsed` event is fired. The result is also available at any moment
+ * via the read-only `obj` property.
+ *
+ * Parsing is safe by default (js-yaml v4 `load`), so untrusted sources cannot
+ * inject arbitrary code.
+ *
+ * @element granite-yaml-parser
+ * @attr {String} yaml - The YAML text to parse
+ * @attr {Boolean} multi-document - If present, parsing deals with multi-document sources and `obj` is `{ documents: [...] }`
+ * @attr {Boolean} debug - If present, debug logs are sent to the console
+ * @fires yaml-parsed - Fired when a YAML text has been parsed. `detail` is `{ yaml, obj }`.
+ * @fires yaml-error - Fired when parsing fails. `detail` is `{ yaml, error }`.
+ */
+export class GraniteYamlParser extends HTMLElement {
 
-  static get properties() {
-    return {
-      /**
-       * The YAML text to parse
-       */
-      yaml: {
-        type: String,
-        value: '',
-        observer: '_onYamlChange',
-      },
-      /**
-       * The JS object resulting from parsing `yaml`
-       */
-      obj: {
-        type: Object,
-        notify: true,
-        readOnly: true,
-      },
-      /**
-       * If `true` YS-YAML uses `load` instead of `safeLoad`.
-       * Use with care with untrusted sources.
-       */
-      unsafe: {
-        type: Boolean,
-        value: false,
-      },
-      /**
-      * If true parsing deals with multi-document sources
-      */
-      multiDocument: {
-          type: Boolean,
-          value: false,
-      },
-      /**
-      * If true debug logs are sent to the console
-      */
-      debug: {
-          type: Boolean,
-          value: false,
-      },
-    };
+  static get observedAttributes() {
+    return ['yaml', 'multi-document'];
   }
 
-  _onYamlChange() {
-    if (this.debug) { console.log('[granite-yaml-parser] _onYamlChange - YAML', this.yaml); }
+  constructor() {
+    super();
+    this._yaml = '';
+    this._obj = undefined;
+  }
 
-    if (this.unsafe) {
-      if (this.multiDocument) {
-        this._setObj({documents: jsyaml.loadAll(this.yaml)});
-      } else {
-        this._setObj(jsyaml.load(this.yaml));
-      }
-    } else {
-      if (this.multiDocument) {
-        this._setObj({documents: jsyaml.safeLoadAll(this.yaml)});
-      } else {
-        this._setObj(jsyaml.load(this.yaml));
-      }
+  connectedCallback() {
+    // Capture properties set before the element was upgraded
+    this._upgradeProperty('yaml');
+    this._upgradeProperty('multiDocument');
+    this._upgradeProperty('debug');
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) {
+      return;
+    }
+    if (name === 'yaml') {
+      this.yaml = newValue === null ? '' : newValue;
+    } else if (name === 'multi-document' && this._yaml) {
+      this._parse();
+    }
+  }
+
+  /**
+   * The YAML text to parse. Setting it triggers parsing.
+   * @type {String}
+   */
+  get yaml() {
+    return this._yaml;
+  }
+  set yaml(value) {
+    this._yaml = value === null || value === undefined ? '' : String(value);
+    this._parse();
+  }
+
+  /**
+   * The JS object resulting from parsing `yaml` (read-only).
+   * @type {*}
+   */
+  get obj() {
+    return this._obj;
+  }
+
+  /**
+   * If `true`, parsing deals with multi-document sources and `obj` is
+   * `{ documents: [...] }`. Reflected to the `multi-document` attribute.
+   * @type {Boolean}
+   */
+  get multiDocument() {
+    return this.hasAttribute('multi-document');
+  }
+  set multiDocument(value) {
+    this.toggleAttribute('multi-document', Boolean(value));
+  }
+
+  /**
+   * If `true`, debug logs are sent to the console.
+   * Reflected to the `debug` attribute.
+   * @type {Boolean}
+   */
+  get debug() {
+    return this.hasAttribute('debug');
+  }
+  set debug(value) {
+    this.toggleAttribute('debug', Boolean(value));
+  }
+
+  // ***********************************************************************
+  // Internal helpers
+  // ***********************************************************************
+
+  _parse() {
+    if (this.debug) { console.log('[granite-yaml-parser] _parse - YAML', this._yaml); }
+
+    try {
+      this._obj = parseYaml(this._yaml, { multiDocument: this.multiDocument });
+    } catch (error) {
+      if (this.debug) { console.error('[granite-yaml-parser] _parse - Error', error); }
+      this.dispatchEvent(new CustomEvent('yaml-error', {
+        detail: { yaml: this._yaml, error },
+        bubbles: true,
+        composed: true,
+      }));
+      return;
     }
 
-    this.dispatchEvent(new CustomEvent('yaml-parsed', {detail: {yaml: this.yaml, obj: this.obj}}));
+    if (this.debug) { console.log('[granite-yaml-parser] _parse - Object', this._obj); }
 
-    if (this.debug) { console.log('[granite-yaml-parser] _onYamlChange - Object', this.obj); }
+    this.dispatchEvent(new CustomEvent('yaml-parsed', {
+      detail: { yaml: this._yaml, obj: this._obj },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
+  _upgradeProperty(property) {
+    if (Object.prototype.hasOwnProperty.call(this, property)) {
+      const value = this[property];
+      delete this[property];
+      this[property] = value;
+    }
   }
 }
 
-window.customElements.define(GraniteYamlParser.is, GraniteYamlParser);
+if (!customElements.get('granite-yaml-parser')) {
+  customElements.define('granite-yaml-parser', GraniteYamlParser);
+}

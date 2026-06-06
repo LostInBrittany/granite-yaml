@@ -1,101 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
+<!--
+@license MIT
+Copyright (c) 2016 Horacio "LostInBrittany" Gonzalez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>granite-yaml-parser demo</title>
 
-    <title>granite-yaml-parser demo</title>
+  <!-- Resolves the `js-yaml` bare import when served without a build step
+       (e.g. on GitHub Pages). Locally, web-dev-server resolves it instead. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "js-yaml": "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.mjs"
+      }
+    }
+  </script>
+  <script type="module" src="../granite-yaml-parser.js"></script>
 
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 550px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: monospace;
+      min-height: 12rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #f5f5f5;
+      padding: 0.5rem;
+      min-height: 3rem;
+    }
+  </style>
+</head>
 
-    <script src="../../../@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+<body>
+  <h1><code>granite-yaml-parser</code></h1>
+  <p><a href="./index.html">← All demos</a></p>
 
-    <script type="module">
-      import '@polymer/polymer/polymer-element.js';
-      import '@polymer/iron-demo-helpers/demo-pages-shared-styles';
-      import '@polymer/iron-demo-helpers/demo-snippet';
-    </script>
-    <script type="module" src="../granite-yaml-parser.js"></script>
+  <h3>Basic usage</h3>
+  <p>Edit the YAML below, the parsed object updates live.</p>
 
-    <custom-style>
-        <style is="custom-style" include="demo-pages-shared-styles">
-        </style>
-    </custom-style>
-
-  </head>
-  <body>
-    <div class="vertical-section-container centered">
-      <h3>Basic granite-yaml-parser demo</h3>
-      <demo-snippet>
-        <template>
-          <dom-bind id="bindingDemo1">
-            <template>
-                [[stringify_obj]]
-                <granite-yaml-parser id="granite-yaml-parser-demo-1" yaml="[[yaml]]" obj="{{obj}}" debug=""></granite-yaml-parser>
-            </template>
-          </dom-bind>
-        </template>
-      </demo-snippet>
-    </div>
-
-    <div class="vertical-section-container centered">
-      <h3>Multi-document granite-yaml-parser demo</h3>
-      <demo-snippet>
-        <template>
-          <dom-bind id="bindingDemo2">
-            <template>
-                [[stringify_obj]]
-                <granite-yaml-parser id="granite-yaml-parser-demo-2" yaml="[[yaml]]" obj="{{obj}}" debug="" multi-document=""></granite-yaml-parser>
-            </template>
-          </dom-bind>
-        </template>
-      </demo-snippet>
-    </div>
-
-    <script type="module">
-      import '@polymer/polymer/polymer-legacy.js';
-      import '@polymer/iron-demo-helpers/demo-pages-shared-styles.js';
-      import '@polymer/iron-demo-helpers/demo-snippet.js';
-      import '../granite-yaml-parser.js';
-      console.log(document.querySelector('#granite-yaml-parser-demo-1'));
-      document.querySelector('#granite-yaml-parser-demo-1').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 1', evt.detail);
-        bindingDemo1.stringify_obj = JSON.stringify(evt.detail.obj);
-      });
-      let bindingDemo1 = document.getElementById('bindingDemo1');
-      bindingDemo1.yaml=`        
-aString: 'This is a string'
+  <textarea id="input" spellcheck="false">aString: 'This is a string'
 aNumber: 42
-anotherString:
-  |
+anotherString: |
   This is a multiline
   string
-yetAnotherString:
-  >
+yetAnotherString: >
   This is another multiline
-  string
-      `;
+  string</textarea>
 
-      console.log(document.querySelector('#granite-yaml-parser-demo-2'));
-      document.querySelector('#granite-yaml-parser-demo-2').addEventListener('yaml-parsed', (evt) => {
-        console.log('YAML parsed demo 2', evt.detail);
-        bindingDemo2.stringify_obj = JSON.stringify(evt.detail.obj);
-      });
-      let bindingDemo2 = document.getElementById('bindingDemo2');
-      bindingDemo2.yaml=`
----
+  <granite-yaml-parser id="parser"></granite-yaml-parser>
+
+  <h3>Parsed object</h3>
+  <pre id="output">(waiting for YAML)</pre>
+
+  <h3>Multi-document source</h3>
+  <p>With the <code>multi-document</code> attribute, the parsed object is
+    <code>{ documents: [...] }</code>.</p>
+
+  <granite-yaml-parser id="multi-parser" multi-document></granite-yaml-parser>
+
+  <pre id="multi-output">(waiting for YAML)</pre>
+
+  <script>
+    const parser = document.getElementById('parser');
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+
+    parser.addEventListener('yaml-parsed', (evt) => {
+      output.textContent = JSON.stringify(evt.detail.obj, null, 2);
+    });
+    parser.addEventListener('yaml-error', (evt) => {
+      output.textContent = `Parse error: ${evt.detail.error.message}`;
+    });
+
+    input.addEventListener('input', () => { parser.yaml = input.value; });
+
+    const multiParser = document.getElementById('multi-parser');
+    const multiOutput = document.getElementById('multi-output');
+
+    multiParser.addEventListener('yaml-parsed', (evt) => {
+      multiOutput.textContent = JSON.stringify(evt.detail.obj, null, 2);
+    });
+
+    // Wait for the element definition before driving it from script
+    customElements.whenDefined('granite-yaml-parser').then(() => {
+      parser.yaml = input.value;
+      multiParser.yaml = `---
 aString: This is a string
 aNumber: 42
-anotherString:
-  |
-  This is a multiline
-  string
-yetAnotherString:
-  >
-  This is another multiline
-  string
 ---
 aString: Oh yeah, yet a string
-      `;
-    </script>
-  </body>
+`;
+    });
+  </script>
+</body>
 </html>
